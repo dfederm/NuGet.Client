@@ -6,7 +6,7 @@ using System;
 namespace NuGet.Protocol.Plugins
 {
     /// <summary>
-    /// Embedded Signature Verifier for the MacOS, Linux and Mono platforms.
+    /// Embedded Signature Verifier for the MacOS, Linux, FreeBSD and Mono platforms.
     /// </summary>
     public class UnixAndMonoPlatformsEmbeddedSignatureVerifier : EmbeddedSignatureVerifier
     {
@@ -24,7 +24,7 @@ namespace NuGet.Protocol.Plugins
             {
                 throw new ArgumentException(Strings.Argument_Cannot_Be_Null_Or_Empty, nameof(filePath));
             }
-            // There's no embedded signature verification on Linux, MacOS and Mono platforms
+            // There's no embedded signature verification on Linux, FreeBSD, MacOS and Mono platforms
             return true;
         }
     }
