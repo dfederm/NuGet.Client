@@ -21,6 +21,8 @@ namespace NuGet.Common
 
         private static Lazy<bool> _IsLinux = new Lazy<bool>(() => GetIsLinux());
 
+        private static Lazy<bool> _IsFreeBSD = new Lazy<bool>(() => GetIsFreeBSD());
+
         private static Lazy<bool> _isRunningInVisualStudio = new Lazy<bool>(() =>
         {
             if (!IsWindows)
@@ -36,6 +38,34 @@ namespace NuGet.Common
 
         [DllImport("libc")]
         static extern int uname(IntPtr buf);
+
+        static string GetUnixName()
+        {
+            var buf = IntPtr.Zero;
+
+            try
+            {
+                buf = Marshal.AllocHGlobal(8192);
+
+                // This is a hacktastic way of getting sysname from uname ()
+                if (uname(buf) == 0)
+                {
+                    return Marshal.PtrToStringAnsi(buf);
+                }
+            }
+            catch
+            {
+            }
+            finally
+            {
+                if (buf != IntPtr.Zero)
+                {
+                    Marshal.FreeHGlobal(buf);
+                }
+            }
+
+            return null;
+        }
 
         public static bool IsWindows
         {
@@ -104,35 +134,7 @@ namespace NuGet.Common
 
             return false;
 #else
-            var buf = IntPtr.Zero;
-
-            try
-            {
-                buf = Marshal.AllocHGlobal(8192);
-
-                // This is a hacktastic way of getting sysname from uname ()
-                if (uname(buf) == 0)
-                {
-                    var os = Marshal.PtrToStringAnsi(buf);
-
-                    if (os == "Darwin")
-                    {
-                        return true;
-                    }
-                }
-            }
-            catch
-            {
-            }
-            finally
-            {
-                if (buf != IntPtr.Zero)
-                {
-                    Marshal.FreeHGlobal(buf);
-                }
-            }
-
-            return false;
+            return GetUnixName() == "Darwin";
 #endif
         }
 
@@ -155,6 +157,16 @@ namespace NuGet.Common
             var platform = (int)Environment.OSVersion.Platform;
             return platform == 4;
 #endif
+        }
+
+        public static bool IsFreeBSD
+        {
+            get => _IsFreeBSD.Value;
+        }
+
+        private static bool GetIsFreeBSD()
+        {
+            return GetUnixName() == "FreeBSD";
         }
     }
 }

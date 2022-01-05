@@ -519,9 +519,9 @@ namespace NuGet.Packaging
             {
                 return false;
             }
-            else if (RuntimeEnvironmentHelper.IsLinux || RuntimeEnvironmentHelper.IsMacOSX)
+            else if (RuntimeEnvironmentHelper.IsFreeBSD || RuntimeEnvironmentHelper.IsLinux || RuntimeEnvironmentHelper.IsMacOSX)
             {
-                // Please note: Linux/MAC case sensitive for env var name.
+                // Please note: FreeBSD/Linux/MAC case sensitive for env var name.
                 string signVerifyEnvVariable = _environmentVariableReader.GetEnvironmentVariable("DOTNET_NUGET_SIGNATURE_VERIFICATION");
 
                 // Not opt-out option, only opt-in feature.
