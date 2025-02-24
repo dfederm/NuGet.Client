@@ -72,31 +72,38 @@ jobs:
 
   - ${{ if eq(parameters.osName, 'Windows') }}:
     - task: MSBuild@1
-      displayName: Restore and Build $(TestType) Test Projects
+      displayName: Restore $(TestType) Test Projects
       inputs:
         solution: NuGet.sln
         msbuildArchitecture: x64
-        msbuildArguments: --binarylogger:"$(BinlogDirectory)01-RestoreAndBuild.binlog"
+        msbuildArguments: -t:Restore --binarylogger:"$(BinlogDirectory)01-Restore.binlog"
   - ${{ else }}:
     - task: DotNetCoreCLI@2
-      displayName: Restore and Build $(TestType) Test Projects
+      displayName: Restore $(TestType) Test Projects
+      inputs:
+        command: custom
+        custom: restore
+        arguments: --binarylogger:"$(BinlogDirectory)01-Restore.binlog"
+
+  - ${{ if eq(parameters.osName, 'Windows') }}:
+    - task: MSBuild@1
+      displayName: Build and Test $(TestType) Test Projects
+      condition: succeeded()
+      timeoutInMinutes: ${{ parameters.timeoutInMinutes }}
+      inputs:
+        solution: NuGet.sln
+        msbuildArchitecture: x64
+        msbuildArguments: --restore:false -graph -t:Build;Test -p:VSTestFramework=$(TestTargetFramework) --binarylogger:"$(BinlogDirectory)02-BuildAndTest.binlog"
+  - ${{ else }}:
+    - task: DotNetCoreCLI@2
+      displayName: Build and Test $(TestType) Test Projects
+      condition: succeeded()
+      timeoutInMinutes: ${{ parameters.timeoutInMinutes }}
+      env:
+        VSTEST_TESTHOST_SHUTDOWN_TIMEOUT: 1000
       inputs:
         command: build
-        arguments: --binarylogger:"$(BinlogDirectory)01-RestoreAndBuild.binlog"
-
-  - task: DotNetCoreCLI@2
-    displayName: Run $(TestType) Tests 
-    condition: succeeded()
-    timeoutInMinutes: ${{ parameters.timeoutInMinutes }}
-    env:
-      VSTEST_TESTHOST_SHUTDOWN_TIMEOUT: 1000
-    inputs:
-      command: test
-      arguments: --no-restore --restore:false --no-build --framework $(TestTargetFramework) --binarylogger:"$(BinlogDirectory)02-RunTests.binlog"
-      ${{ if ne(parameters.testProjectName, '') }}:
-        testRunTitle: ${{ parameters.osName }} $(TestType) Tests for $(TestProjectName) ($(TestTargetFramework))
-      ${{ else }}:
-        testRunTitle: ${{ parameters.osName }} $(TestType) Tests ($(TestTargetFramework))
+        arguments: --no-restore --restore:false -graph -t:Build;Test -p:VSTestFramework=$(TestTargetFramework) --binarylogger:"$(BinlogDirectory)02-BuildAndTest.binlog"
 
   - ${{ if eq(parameters.osName, 'Windows') }}:
     - script: taskkill /im dotnet.exe /f

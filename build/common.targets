@@ -102,6 +102,32 @@
     <Message Text="Tested project $(MSBuildProjectName)" Importance="high"  />
   </Target>
 
+  <!-- Add ability to run tests via "msbuild /t:Test" -->
+  <Sdk Name="Microsoft.Build.RunVSTest" />
+  <PropertyGroup>
+    <!-- Workaround for https://github.com/microsoft/MSBuildSdks/issues/564 -->
+    <RunVSTest Condition="'$(IsCrossTargetingBuild)' == 'true'">false</RunVSTest>
+
+    <!-- Only run tests for the requested test type -->
+    <RunVSTest Condition="'$(TestType)' != '' AND '$(TestType)' != '$(TestProjectType)'">false</RunVSTest>
+
+    <!--
+      RunVSTest by default uses %VSINSTALLDIR%\Common7\IDE\CommonExtensions\Microsoft\TestWindow\vstest.console.exe,
+      but some of the CI scenarios don't define %VSINSTALLDIR%, so be explicit about where to look for vstest.
+      Note: $(VsInstallRoot) is a built-in MSBuild property, so should always be defined.
+    -->
+    <VSTestToolPath Condition="'$(VSTestToolPath)' == ''">$(VsInstallRoot)\Common7\IDE\CommonExtensions\Microsoft\TestWindow</VSTestToolPath>
+
+    <VSTestNoLogo Condition="'$(VSTestNoLogo)' == ''">true</VSTestNoLogo>
+    <VSTestVerbosity Condition="'$(SYSTEM_DEBUG)' == 'true'">detailed</VSTestVerbosity>
+    <VSTestVerbosity Condition="'$(VSTestVerbosity)' == ''">quiet</VSTestVerbosity>
+    <!-- Prepending ':' to work around bug in Microsoft.Build.RunVSTest -->
+    <VSTestSetting Condition="'$(VSTestSetting)' == ''">$([System.IO.Path]::Combine('$(MSBuildThisFileDirectory)', 'build', 'xunit.runsettings'))</VSTestSetting>
+    <VSTestResultsDirectory Condition="'$(VSTestResultsDirectory)' == ''">$([System.IO.Path]::Combine('$(MSBuildThisFileDirectory)', 'TestResults'))</VSTestResultsDirectory>
+    <VSTestLogger>trx;$(VSTestLogger)</VSTestLogger>
+    <VSTestLogger>console%3Bverbosity=$(VSTestVerbosity);$(VSTestLogger)</VSTestLogger>
+  </PropertyGroup>
+
   <!--
     ============================================================
     PackProjects
